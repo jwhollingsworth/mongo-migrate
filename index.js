@@ -288,11 +288,12 @@ function runMongoMigrate(direction, migrationEnd, next) {
 					db: dbConnection,
 					migrationCollection: migrationCollection
 				});
-				migrations(direction, lastMigrationNum, migrateTo).forEach(function(path){
-					var mod = require(path);
+				migrations(direction, lastMigrationNum, migrateTo).forEach(function(filepath){
+					var mod = require(filepath);
+					let basename = path.basename(filepath);
 					migrate({
-						num: parseInt(path.split('/')[1].match(/^(\d+)/)[0], 10),
-						title: path,
+						num: parseInt(basename.match(/^(\d+)/)[0], 10),
+						title: basename,
 						up: mod.up,
 						down: mod.down});
 				});
