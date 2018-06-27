@@ -26,7 +26,7 @@ var configFileName = 'default-config.json',
 		dbConfig = null,
 		dbProperty = 'mongoAppDb';
 
-let migrationsFolderPath = 'migrations';
+let migrationsFolderPath = path.join(process.cwd(), 'migrations');
 
 /**
  * Usage information.
@@ -289,7 +289,7 @@ function runMongoMigrate(direction, migrationEnd, next) {
 					migrationCollection: migrationCollection
 				});
 				migrations(direction, lastMigrationNum, migrateTo).forEach(function(path){
-					var mod = require(process.cwd() + '/' + path);
+					var mod = require(path);
 					migrate({
 						num: parseInt(path.split('/')[1].match(/^(\d+)/)[0], 10),
 						title: path,
