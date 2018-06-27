@@ -26,6 +26,8 @@ var configFileName = 'default-config.json',
 		dbConfig = null,
 		dbProperty = 'mongoAppDb';
 
+let migrationsFolderPath = 'migrations';
+
 /**
  * Usage information.
  */
@@ -134,12 +136,12 @@ function runMongoMigrate(direction, migrationEnd, next) {
 			migrateToNum = hasMigrateTo ? parseInt(migrateTo, 10) : undefined,
 			migrateToFound = !hasMigrateTo;
 
-		var migrationsToRun = fs.readdirSync('migrations')
+		var migrationsToRun = fs.readdirSync(migrationsFolderPath)
 			.filter(function (file) {
 				var formatCorrect = file.match(/^\d+.*\.js$/),
 					migrationNum = formatCorrect && parseInt(file.match(/^\d+/)[0], 10),
 					isRunnable = formatCorrect && isDirectionUp ? migrationNum > lastMigrationNum : migrationNum <= lastMigrationNum,
-					isFile = fs.statSync(path.join('migrations', file)).isFile();
+					isFile = fs.statSync(path.join(migrationsFolderPath, file)).isFile();
 
 				if (isFile && !formatCorrect) {
 					console.log('"' + file + '" ignored. Does not match migration naming schema');
@@ -177,7 +179,7 @@ function runMongoMigrate(direction, migrationEnd, next) {
 
 				return formatCorrect && isRunnable;
 			}).map(function(file){
-				return 'migrations/' + file;
+				return path.join(migrationsFolderPath, file);
 			});
 
 		if (!migrateToFound) {
@@ -190,7 +192,7 @@ function runMongoMigrate(direction, migrationEnd, next) {
 	// create ./migrations
 
 	try {
-		fs.mkdirSync('migrations', 0774);
+		fs.mkdirSync(migrationsFolderPath, 0774);
 	} catch (err) {
 		// ignore
 	}
@@ -216,7 +218,7 @@ function runMongoMigrate(direction, migrationEnd, next) {
 		 * create [title]
 		 */
 		create: function(){
-			var migrations = fs.readdirSync('migrations').filter(function(file){
+			var migrations = fs.readdirSync(migrationsFolderPath).filter(function(file){
 				return file.match(/^\d+/);
 			}).map(function(file){
 						return parseInt(file.match(/^(\d+)/)[1], 10);
@@ -237,7 +239,7 @@ function runMongoMigrate(direction, migrationEnd, next) {
 	 * @param {String} name
 	 */
 	function create(name) {
-		var path = 'migrations/' + name + '.js';
+		var path = path.join(migrationsFolderPath, `${name}.js`);
 		log('create', join(process.cwd(), path));
 		fs.writeFileSync(path, template);
 	}
@@ -282,7 +284,7 @@ function runMongoMigrate(direction, migrationEnd, next) {
 					lastMigrationNum = lastMigration ? lastMigration.num : 0;
 
 				migrate({
-					migrationTitle: 'migrations/.migrate',
+					migrationTitle: path.join(migrationsFolderPath, '.migrate'),
 					db: dbConnection,
 					migrationCollection: migrationCollection
 				});
@@ -333,8 +335,12 @@ function setConfigFileProperty(propertyName) {
 	dbProperty = propertyName;
 }
 
+function setPath(path) {
+  migrationsFolderPath = path;
+}
+
 function setDbConfig(conf) {
-	dbConfig = JSON.parse(conf);
+	dbConfig = (typeof conf === 'string') ? JSON.parse(conf) : conf;
 }
 
 var runmmIdx = args.indexOf('-runmm'),
@@ -383,6 +389,7 @@ if (runmmIdx > -1 || runMongoMigrateIdx > -1) {
 	module.exports = {
 		run: runMongoMigrate,
 		changeWorkingDirectory: chdir,
+    setPath: setPath,
 		setDbConfig: setDbConfig,
 		setConfigFilename: setConfigFilename,
 		setConfigFileProp: setConfigFileProperty
